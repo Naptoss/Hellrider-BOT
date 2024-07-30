@@ -24,33 +24,31 @@ def add_farm_log(member_name, rank, passport, farm_type, quantity):
     conm.close()
 
 
-# Comandos do bot
+# Inicialização do bot
 @bot.event
 async def on_ready():
     print(f'Bot {bot.user} ready')
 
+
+# Comando para adicionar farm
 @bot.command(name='farm')
 async def farm(ctx):
+
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel 
     await ctx.send('Nome do membro: ')
     member_name = await bot.wait_for('message', check=check)
-
     await ctx.send('Cargo: ')
     rank = await bot.wait_for('message', check=check)
-
     await ctx.send('Passaporte: ')
     passport = await bot.wait_for('message', check=check)
-
     await ctx.send('Tipo de farm: ')
     farm_type = await bot.wait_for('message', check=check)
-
     await ctx.send('Quantidade: ')
     quantity = await bot.wait_for('message', check=check)
 
     # Adicionando informações banco de dados
     add_farm_log(member_name.content, rank.content, passport.content, farm_type.content, int(quantity.content))
-    
     await ctx.send(f'Farm adicionado com sucesso ao membro {member_name.content}')
 
     # comando para consultrar o registros de farm
@@ -69,7 +67,8 @@ async def consultar_farm(ctx):
     else:
         await ctx.send("Nenhum registro de farm encontrado.")
 
-    # Iniciar o bot
+
+# Iniciar o bot
 load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
 bot.run(token)
