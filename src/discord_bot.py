@@ -11,7 +11,7 @@ intents.message_content = True  # Permite que o bot leia o conteúdo das mensage
 
 
 # inicio da configuração do bot
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='/', intents=intents)
 
 def add_farm_log(member_name, rank, passport, farm_type, quantity):
     conm = sqlite3.connect('database.db')
