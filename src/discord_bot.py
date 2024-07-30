@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import os
+import asyncio
 from discord import SelectOption
 from discord.ui import Select, View
 from pymongo import MongoClient
@@ -23,6 +24,8 @@ client = MongoClient(mongo_uri)
 db = client['hellriders_bot']
 members_collection = db['members']
 farm_logs_collection = db['farm_logs']
+
+active_farm_commands = {}  # Rastrear comandos /farm ativos por canal
 
 def add_member(user_id, user_name, passaporte):
     members_collection.update_one(
@@ -52,51 +55,81 @@ def is_passport_registered(passaporte):
 async def on_ready():
     print(f'Bot {bot.user} ready')
 
+async def get_valid_passport(user):
+    def check(m):
+        return m.author == user and isinstance(m.channel, discord.DMChannel)
+    
+    while True:
+        await user.send('Por favor, forneça o passaporte (apenas números inteiros):')
+        passport_msg = await bot.wait_for('message', check=check)
+        passaporte = passport_msg.content
+
+        if passaporte.isdigit():
+            return int(passaporte)
+        else:
+            await user.send("🚫 Passaporte inválido. Deve conter apenas números inteiros.")
+
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
 async def farm(ctx):
     def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
+        return m.author == ctx.author and isinstance(m.channel, discord.DMChannel)
 
     user_id = ctx.author.id  # Obtém o ID do usuário que invocou o comando
     user_name = ctx.author.name
+    channel_id = ctx.channel.id
 
-    await ctx.send('Passaporte: ')
-    passport_msg = await bot.wait_for('message', check=check)
-    passaporte = passport_msg.content
-
-    # Verificar se o passaporte já está registrado por outro usuário
-    registered_member = is_passport_registered(passaporte)
-    if registered_member and registered_member['user_id'] != user_id:
-        await ctx.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
+    if channel_id in active_farm_commands:
+        await ctx.send(f"🚫 {ctx.author.mention}, outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde e verifique suas mensagens diretas.")
         return
 
-    # Registrar membro no banco de dados
-    add_member(user_id, user_name, passaporte)
-    
-    # Menu dropdown para Tipo de farm
-    options = [
-        SelectOption(label="Pólvora", value="Polvora"),
-        SelectOption(label="Projétil", value="Projetil"),
-        SelectOption(label="Cápsula", value="Capsula")
-    ]
-    select = Select(placeholder="Escolha o tipo de farm...", options=options)
-    
-    async def select_callback(interaction):
-        farm_type = select.values[0]
-        await interaction.response.send_message(f'Tipo de farm selecionado: {farm_type}', ephemeral=True)
-        await ctx.send('Quantidade: ')
-        quantity_msg = await bot.wait_for('message', check=check)
-        quantity = int(quantity_msg.content)
+    active_farm_commands[channel_id] = user_id
 
-        # Adicionando informações ao banco de dados
-        add_farm_log(user_id, passaporte, farm_type, quantity)
-        await ctx.send(f"Farm adicionado com sucesso ao membro {ctx.author.mention}")
+    try:
+        await ctx.author.send("Iniciando processo de registro de farm. Por favor, siga as instruções enviadas aqui.")
+        await ctx.send(f"✅ {ctx.author.mention}, verifique suas mensagens diretas para continuar o processo de registro de farm.")
 
-    select.callback = select_callback
-    view = View()
-    view.add_item(select)
-    await ctx.send("Escolha o tipo de farm:", view=view)
+        passaporte = await get_valid_passport(ctx.author)
+
+        # Verificar se o passaporte já está registrado por outro usuário
+        registered_member = is_passport_registered(passaporte)
+        if registered_member and registered_member['user_id'] != user_id:
+            await ctx.author.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
+            return
+
+        # Registrar membro no banco de dados
+        add_member(user_id, user_name, passaporte)
+        
+        # Menu dropdown para Tipo de farm
+        options = [
+            SelectOption(label="Pólvora", value="Polvora"),
+            SelectOption(label="Projétil", value="Projetil"),
+            SelectOption(label="Cápsula", value="Capsula")
+        ]
+        select = Select(placeholder="Escolha o tipo de farm...", options=options)
+
+        async def select_callback(interaction):
+            if interaction.user.id != user_id:
+                await interaction.response.send_message("🚫 Você não tem permissão para interagir com este menu.", ephemeral=True)
+                return
+
+            farm_type = select.values[0]
+            await interaction.response.send_message(f'Tipo de farm selecionado: {farm_type}', ephemeral=True)
+            await ctx.author.send('Quantidade: ')
+            quantity_msg = await bot.wait_for('message', check=check)
+            quantity = int(quantity_msg.content)
+
+            # Adicionando informações ao banco de dados
+            add_farm_log(user_id, passaporte, farm_type, quantity)
+            await ctx.author.send(f"Farm adicionado com sucesso.")
+
+        select.callback = select_callback
+        view = View()
+        view.add_item(select)
+        await ctx.author.send("Escolha o tipo de farm:", view=view)
+
+    finally:
+        del active_farm_commands[channel_id]
 
 # Comando para buscar todos os membros e seus passaportes
 @bot.command(name='buscar_registros')
@@ -111,27 +144,27 @@ async def buscar_registros(ctx):
 # Comando para buscar membro por passaporte
 @bot.command(name='buscar_membro')
 async def buscar_membro(ctx, passaporte: str = None):
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-    
     if passaporte is None:
-        await ctx.send('Por favor, forneça o passaporte:')
-        passport_msg = await bot.wait_for('message', check=check)
-        passaporte = passport_msg.content
+        passaporte = await get_valid_passport(ctx.author)
 
     rows = get_member_by_passport(passaporte)
     if rows:
-        member_data = defaultdict(int)
+        member_data = defaultdict(lambda: defaultdict(int))
         user_id = None
         for row in rows:
             user_id = row['user_id']
             farm_type = row['farm_type']
             quantity = row['quantity']
-            member_data[farm_type] += quantity
+            date = row['timestamp'].strftime('%d/%m/%Y')
+            member_data[date][farm_type] += quantity
 
         if user_id:
             member = await ctx.guild.fetch_member(user_id)
-            farms_summary = '\n'.join([f'--> {ft} - {qt}' for ft, qt in member_data.items()])
+            farms_summary = ''
+            for date, farms in member_data.items():
+                farms_summary += f"**Data: {date}**\n"
+                farms_summary += '\n'.join([f'--> {ft} - {qt}' for ft, qt in farms.items()])
+                farms_summary += '\n'
             await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
     else:
         await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
@@ -143,7 +176,7 @@ async def ajuda(ctx):
     **Comandos Disponíveis:**
     - `/farm`: Registrar uma atividade de farm. O bot irá solicitar o passaporte, tipo de farm e quantidade.
     - `/buscar_registros`: Buscar todos os membros registrados e seus passaportes.
-    - `/buscar_membro [passaporte]`: Buscar um membro específico pelo passaporte e exibir suas atividades de farm. Se o passaporte não for fornecido, o bot solicitará o passaporte.
+    - `/buscar_membro [passaporte]`: Buscar um membro específico pelo passaporte e exibir suas atividades de farm separadas por data. Se o passaporte não for fornecido, o bot solicitará o passaporte.
     - `/ajuda`: Exibir a lista de comandos disponíveis e suas descrições.
     """
     await ctx.send(help_message)
@@ -151,4 +184,8 @@ async def ajuda(ctx):
 # Iniciar o bot
 load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
-bot.run(token)
+
+try:
+    bot.run(token)
+except KeyboardInterrupt:
+    print("Bot desligado manualmente.")
