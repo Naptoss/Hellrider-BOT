@@ -9,6 +9,7 @@ from discord.ui import Select, View
 # Configurar as intents
 intents = discord.Intents.default()
 intents.message_content = True  # Permite que o bot leia o conteúdo das mensagens
+intents.members = True  # Necessário para buscar informações dos membros
 
 # Início da configuração do bot
 bot = commands.Bot(command_prefix='/', intents=intents)
@@ -73,7 +74,16 @@ async def consultar_farm(ctx):
 
     if rows:
         for row in rows:
-            await ctx.send(f"ID do Usuário: {row[0]}, Passaporte: {row[1]}, Tipo de Farm: {row[2]}, Quantidade: {row[3]}, Data: {row[4]}")
+            user_id = int(row[0])
+            user = await bot.fetch_user(user_id)  # Busca o usuário pelo ID
+            member = ctx.guild.get_member(user_id)  # Obtém o membro do servidor
+            if member:
+                roles = [role.name for role in member.roles[1:]]  # Obtém os cargos (exceto @everyone)
+                role_names = ', '.join(roles)
+            else:
+                role_names = 'Nenhum cargo encontrado'
+            
+            await ctx.send(f"Nome do Usuário: {user.name}, Cargos: {role_names}, Passaporte: {row[1]}, Tipo de Farm: {row[2]}, Quantidade: {row[3]}, Data: {row[4]}")
     else:
         await ctx.send("Nenhum registro de farm encontrado.")
 
