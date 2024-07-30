@@ -25,6 +25,18 @@ def add_farm_log(user_id, passport, farm_type, quantity):
     conn.commit()
     conn.close()
 
+def get_member_by_passport(passport):
+    conn = sqlite3.connect('database/database.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    SELECT user_id, passport, farm_type, quantity 
+    FROM farm_logs 
+    WHERE passport = ?
+    ''', (passport,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
 # Inicialização do bot
 @bot.event
 async def on_ready():
@@ -83,6 +95,33 @@ async def consultar_farm(ctx):
         for passport, farms in passports.items():
             farms_summary = ', '.join([f'{ft} - {qt}' for ft, qt in farms.items()])
             await ctx.send(f"-Membro: {user.name}, Passaporte: {passport}, Farms: {farms_summary}")
+
+# Comando para consultar membro por passaporte
+@bot.command(name='consultar_membro')
+async def consultar_membro(ctx):
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+    
+    await ctx.send('Por favor, forneça o passaporte:')
+    passport_msg = await bot.wait_for('message', check=check)
+    passport = passport_msg.content
+
+    rows = get_member_by_passport(passport)
+    if rows:
+        member_data = defaultdict(int)
+        user_id = None
+        for row in rows:
+            user_id = row[0]
+            farm_type = row[2]
+            quantity = row[3]
+            member_data[farm_type] += quantity
+
+        if user_id:
+            user = await bot.fetch_user(user_id)
+            farms_summary = ', '.join([f'{ft} - {qt}' for ft, qt in member_data.items()])
+            await ctx.send(f"-Membro: {user.name}, Passaporte: {passport}, Farms: {farms_summary}")
+    else:
+        await ctx.send(f"Nenhum registro encontrado para o passaporte {passport}")
 
 # Iniciar o bot
 load_dotenv()
