@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 from discord import SelectOption
 from discord.ui import Select, View
+from collections import defaultdict
 
 # Configurar as intents
 intents = discord.Intents.default()
@@ -68,24 +69,20 @@ async def farm(ctx):
 async def consultar_farm(ctx):
     conn = sqlite3.connect('database/database.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT user_id, passport, farm_type, quantity, timestamp FROM farm_logs')
+    cursor.execute('SELECT user_id, passport, farm_type, SUM(quantity) FROM farm_logs GROUP BY user_id, passport, farm_type')
     rows = cursor.fetchall()
     conn.close()
 
-    if rows:
-        for row in rows:
-            user_id = int(row[0])
-            user = await bot.fetch_user(user_id)  # Busca o usuário pelo ID
-            member = ctx.guild.get_member(user_id)  # Obtém o membro do servidor
-            if member:
-                roles = [role.name for role in member.roles[1:]]  # Obtém os cargos (exceto @everyone)
-                role_names = ', '.join(roles)
-            else:
-                role_names = 'Nenhum cargo encontrado'
-            
-            await ctx.send(f"Nome do Usuário: {user.name}, Cargos: {role_names}, Passaporte: {row[1]}, Tipo de Farm: {row[2]}, Quantidade: {row[3]}, Data: {row[4]}")
-    else:
-        await ctx.send("Nenhum registro de farm encontrado.")
+    farm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    for row in rows:
+        user_id, passport, farm_type, quantity = row
+        farm_data[user_id][passport][farm_type] += quantity
+
+    for user_id, passports in farm_data.items():
+        user = await bot.fetch_user(user_id)
+        for passport, farms in passports.items():
+            farms_summary = ', '.join([f'{ft} - {qt}' for ft, qt in farms.items()])
+            await ctx.send(f"-Membro: {user.name}, Passaporte: {passport}, Farms: {farms_summary}")
 
 # Iniciar o bot
 load_dotenv()
