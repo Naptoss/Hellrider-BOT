@@ -14,7 +14,7 @@ intents.message_content = True  # Permite que o bot leia o conteúdo das mensage
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 def add_farm_log(member_name, rank, passport, farm_type, quantity):
-    conm = sqlite3.connect('database.db')
+    conm = sqlite3.connect('database/database.db')
     cursor = conm.cursor()
     cursor.execute('''
     INSERT INTO farm_logs (member_name, rank, passport, farm_type, quantity)
@@ -57,7 +57,7 @@ async def farm(ctx):
 
 @bot.command(name='consultar_farm')
 async def consultar_farm(ctx):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect('database/database.db')
     cursor = conn.cursor()
     cursor.execute('SELECT member_name, rank, passport, farm_type, quantity, timestamp FROM farm_logs')
     rows = cursor.fetchall()
