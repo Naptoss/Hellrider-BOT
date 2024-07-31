@@ -72,29 +72,27 @@ async def get_valid_passport(user):
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
 async def farm(ctx):
-    def check(m):
-        return m.author == ctx.author and isinstance(m.channel, discord.DMChannel)
-
-    user_id = ctx.author.id  # Obtém o ID do usuário que invocou o comando
-    user_name = ctx.author.name
+    user = ctx.author  # Usuário que invocou o comando
+    user_id = user.id
+    user_name = user.name
     channel_id = ctx.channel.id
 
     if channel_id in active_farm_commands:
-        await ctx.send(f"🚫 {ctx.author.mention}, outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde e verifique suas mensagens diretas.")
+        await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
         return
 
     active_farm_commands[channel_id] = user_id
 
     try:
-        await ctx.author.send("Iniciando processo de registro de farm. Por favor, siga as instruções enviadas aqui.")
-        await ctx.send(f"✅ {ctx.author.mention}, verifique suas mensagens diretas para continuar o processo de registro de farm.")
+        await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
+        dm_channel = await user.create_dm()
 
-        passaporte = await get_valid_passport(ctx.author)
+        passaporte = await get_valid_passport(user)
 
         # Verificar se o passaporte já está registrado por outro usuário
         registered_member = is_passport_registered(passaporte)
         if registered_member and registered_member['user_id'] != user_id:
-            await ctx.author.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
+            await dm_channel.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
             return
 
         # Registrar membro no banco de dados
@@ -115,18 +113,18 @@ async def farm(ctx):
 
             farm_type = select.values[0]
             await interaction.response.send_message(f'Tipo de farm selecionado: {farm_type}', ephemeral=True)
-            await ctx.author.send('Quantidade: ')
-            quantity_msg = await bot.wait_for('message', check=check)
+            await dm_channel.send('Quantidade: ')
+            quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
             quantity = int(quantity_msg.content)
 
             # Adicionando informações ao banco de dados
             add_farm_log(user_id, passaporte, farm_type, quantity)
-            await ctx.author.send(f"Farm adicionado com sucesso.")
+            await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
 
         select.callback = select_callback
         view = View()
         view.add_item(select)
-        await ctx.author.send("Escolha o tipo de farm:", view=view)
+        await dm_channel.send("Escolha o tipo de farm:", view=view)
 
     finally:
         del active_farm_commands[channel_id]
@@ -143,29 +141,37 @@ async def buscar_registros(ctx):
 
 # Comando para buscar membro por passaporte
 @bot.command(name='buscar_membro')
-async def buscar_membro(ctx, passaporte: str = None):
+async def buscar_membro(ctx, passaporte: int = None):
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+
     if passaporte is None:
-        passaporte = await get_valid_passport(ctx.author)
+        await ctx.send('Por favor, forneça o passaporte:')
+        passport_msg = await bot.wait_for('message', check=check)
+        passaporte = passport_msg.content
+
+        if not passaporte.isdigit():
+            await ctx.send("🚫 Passaporte inválido. Deve conter apenas números inteiros.")
+            return
+        passaporte = int(passaporte)
 
     rows = get_member_by_passport(passaporte)
     if rows:
         member_data = defaultdict(lambda: defaultdict(int))
-        user_id = None
+        user_id = rows[0]['user_id']
         for row in rows:
-            user_id = row['user_id']
             farm_type = row['farm_type']
             quantity = row['quantity']
             date = row['timestamp'].strftime('%d/%m/%Y')
             member_data[date][farm_type] += quantity
 
-        if user_id:
-            member = await ctx.guild.fetch_member(user_id)
-            farms_summary = ''
-            for date, farms in member_data.items():
-                farms_summary += f"**Data: {date}**\n"
-                farms_summary += '\n'.join([f'--> {ft} - {qt}' for ft, qt in farms.items()])
-                farms_summary += '\n'
-            await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
+        member = await ctx.guild.fetch_member(user_id)
+        farms_summary = ''
+        for date, farms in member_data.items():
+            farms_summary += f"**Data: {date}**\n"
+            farms_summary += '\n'.join([f'--> {ft} - {qt}' for ft, qt in farms.items()])
+            farms_summary += '\n'
+        await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
     else:
         await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
 
