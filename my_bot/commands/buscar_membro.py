@@ -24,6 +24,8 @@ async def buscar_membro(ctx, bot, passaporte: int = None):
             selected_passaporte = int(select.values[0])
             await interaction.response.send_message(f"Buscando informações para o passaporte {selected_passaporte}...", ephemeral=True)
             await fetch_member_data(ctx, bot, selected_passaporte)  # Passar bot aqui também
+            select.disabled = True  # Desabilitar o dropdown após a seleção
+            await interaction.message.edit(view=view)  # Atualizar a mensagem com o dropdown desabilitado
 
         select.callback = select_callback
         view = View()
@@ -74,6 +76,8 @@ async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetr
             else:
                 await interaction.response.send_message(f"Buscando imagens para o farm {selected_id}...", ephemeral=True)
                 await fetch_farm_images(ctx, selected_id)
+            select.disabled = True  # Desabilitar o dropdown após a seleção
+            await interaction.message.edit(view=view)  # Atualizar a mensagem com o dropdown desabilitado
 
         select.callback = select_callback
         view = View()
