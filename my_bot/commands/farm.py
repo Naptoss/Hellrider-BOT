@@ -2,25 +2,25 @@ import discord
 from discord import SelectOption
 from discord.ui import Select, View
 import asyncio
-from my_bot.db.db_operations import add_member, add_farm_log, is_passport_registered
+from my_bot.db import add_member, add_farm_log, is_passport_registered
 from my_bot.utils import get_valid_passport, get_image
 
 active_farm_commands = {}
 
-async def farm(interaction: discord.Interaction, bot):
-    user = interaction.user
+async def farm(ctx, bot):
+    user = ctx.author
     user_id = user.id
     user_name = user.name
-    channel_id = interaction.channel_id
+    channel_id = ctx.channel.id
 
     if channel_id in active_farm_commands:
-        await interaction.response.send_message(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.", ephemeral=True)
+        await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
         return
 
     active_farm_commands[channel_id] = user_id
 
     try:
-        await interaction.response.send_message(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.", ephemeral=True)
+        await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
         dm_channel = await user.create_dm()
 
         passaporte = await get_valid_passport(bot, user)
@@ -60,7 +60,7 @@ async def farm(interaction: discord.Interaction, bot):
             img_depois = await get_image(bot, user, 'Por favor, envie a imagem de depois de colocar o farm no baú.')
 
             add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois)
-            await interaction.followup.send(f"Farm adicionado com sucesso ao membro {user.mention}")
+            await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
 
         select.callback = select_callback
         view = View()
