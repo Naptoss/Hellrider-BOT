@@ -1,55 +1,45 @@
+import os
+import asyncio
+from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
-import os
-import sys
+from discord import app_commands
 
-# Adicionar o diretório raiz ao sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from my_bot.commands.farm import farm_command
+from my_bot.commands.buscar_membro import buscar_membro_command
+from my_bot.commands.consultar import consultar_command
+from my_bot.commands.ajuda import ajuda_command
 
-from my_bot.commands.farm import farm
-from my_bot.commands.buscar_membro import buscar_membro
-from my_bot.commands.consultar import consultar
-from my_bot.commands.ajuda import ajuda
+class MyBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+        super().__init__(command_prefix='/', intents=intents)
+        self.synced = False
 
-# Configurar as intents
-intents = discord.Intents.default()
-intents.message_content = True  # Permite que o bot leia o conteúdo das mensagens
-intents.members = True  # Necessário para buscar informações dos membros
+    async def setup_hook(self):
+        await self.tree.sync(guild=discord.Object(id=GUILD_ID))
+        self.synced = True
 
-# Início da configuração do bot
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = MyBot()
 
-# Inicialização do bot
+GUILD_ID = os.getenv('GUILD_ID')
+
 @bot.event
 async def on_ready():
-    print(f'Bot {bot.user} ready')
+    print(f'{bot.user} is ready and slash commands are synced.')
 
-# Comando para registrar membro e adicionar farm
-@bot.command(name='farm')
-async def farm_command(ctx):
-    await farm(ctx, bot)
+@bot.command(name='sync')
+@commands.is_owner()
+async def sync_commands(ctx):
+    await ctx.bot.tree.sync()
+    await ctx.send('Commands synced.')
 
-# Comando para buscar membro por passaporte ou mostrar dropdown de membros registrados
-@bot.command(name='buscar_membro')
-async def buscar_membro_command(ctx, passaporte: int = None):
-    await buscar_membro(ctx, bot, passaporte)
+farm_command(bot)
+buscar_membro_command(bot)
+consultar_command(bot)
+ajuda_command(bot)
 
-# Comando para consultar registros de farm do usuário
-@bot.command(name='consultar')
-async def consultar_command(ctx):
-    await consultar(ctx, bot)
-
-# Comando para exibir a lista de comandos e suas descrições
-@bot.command(name='ajuda')
-async def ajuda_command(ctx):
-    await ajuda(ctx)
-
-# Iniciar o bot
 load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
 
-try:
-    bot.run(token)
-except KeyboardInterrupt:
-    print("Bot desligado manualmente.")
+bot.run(token)
