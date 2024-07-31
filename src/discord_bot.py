@@ -34,12 +34,14 @@ def add_member(user_id, user_name, passaporte):
         upsert=True
     )
 
-def add_farm_log(user_id, passaporte, farm_type, quantity):
+def add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois):
     farm_logs_collection.insert_one({
         'user_id': user_id,
         'passaporte': passaporte,
         'farm_type': farm_type,
         'quantity': quantity,
+        'img_antes': img_antes,
+        'img_depois': img_depois,
         'timestamp': datetime.utcnow()
     })
 
@@ -71,6 +73,14 @@ async def get_valid_passport(user):
             return int(passaporte)
         else:
             await user.send("🚫 Passaporte inválido. Deve conter apenas números inteiros.")
+
+async def get_image(user, prompt):
+    def check(m):
+        return m.author == user and isinstance(m.channel, discord.DMChannel) and m.attachments
+    
+    await user.send(prompt)
+    message = await bot.wait_for('message', check=check)
+    return message.attachments[0].url
 
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
@@ -120,8 +130,11 @@ async def farm(ctx):
             quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
             quantity = int(quantity_msg.content)
 
+            img_antes = await get_image(user, 'Por favor, envie a imagem de antes de colocar o farm no baú.')
+            img_depois = await get_image(user, 'Por favor, envie a imagem de depois de colocar o farm no baú.')
+
             # Adicionando informações ao banco de dados
-            add_farm_log(user_id, passaporte, farm_type, quantity)
+            add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois)
             await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
 
         select.callback = select_callback
@@ -187,7 +200,7 @@ async def fetch_member_data(ctx, passaporte):
 async def ajuda(ctx):
     help_message = """
     **Comandos Disponíveis:**
-    - `/farm`: Registrar uma atividade de farm. O bot irá solicitar o passaporte, tipo de farm e quantidade.
+    - `/farm`: Registrar uma atividade de farm. O bot irá solicitar o passaporte, tipo de farm, quantidade e duas imagens (antes e depois de colocar o farm no baú).
     - `/buscar_membro [passaporte]`: Buscar um membro específico pelo passaporte e exibir suas atividades de farm separadas por data. Se o passaporte não for fornecido, o bot apresentará um menu dropdown com todos os membros registrados.
     - `/ajuda`: Exibir a lista de comandos disponíveis e suas descrições.
     """
