@@ -4,6 +4,11 @@ from discord.ui import Select, View
 import asyncio
 from my_bot.db import add_member, add_farm_log, is_passport_registered
 from my_bot.utils import get_valid_passport, get_image
+import os
+import sys
+
+# Adicionar o diretório raiz ao sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 active_farm_commands = {}
 
@@ -61,6 +66,10 @@ async def farm(ctx, bot):
 
             add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois)
             await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
+
+            # Desativar o dropdown após seleção
+            select.disabled = True
+            await interaction.message.edit(view=view)
 
         select.callback = select_callback
         view = View()
