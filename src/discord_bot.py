@@ -8,6 +8,7 @@ from discord.ui import Select, View
 from pymongo import MongoClient
 from datetime import datetime
 from collections import defaultdict
+import uuid
 
 # Configurar as intents
 intents = discord.Intents.default()
@@ -35,7 +36,9 @@ def add_member(user_id, user_name, passaporte):
     )
 
 def add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois):
+    id_farm = str(uuid.uuid4())
     farm_logs_collection.insert_one({
+        'id_farm': id_farm,
         'user_id': user_id,
         'passaporte': passaporte,
         'farm_type': farm_type,
@@ -47,6 +50,9 @@ def add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois
 
 def get_member_by_passport(passaporte):
     return list(farm_logs_collection.find({'passaporte': passaporte}))
+
+def get_farm_by_id(id_farm):
+    return farm_logs_collection.find_one({'id_farm': id_farm})
 
 def is_passport_registered(passaporte):
     member = members_collection.find_one({'passaporte': passaporte})
@@ -177,23 +183,62 @@ async def buscar_membro(ctx, passaporte: int = None):
 async def fetch_member_data(ctx, passaporte):
     rows = get_member_by_passport(passaporte)
     if rows:
-        member_data = defaultdict(lambda: defaultdict(int))
+        member_data = defaultdict(list)
         user_id = rows[0]['user_id']
         for row in rows:
             farm_type = row['farm_type']
             quantity = row['quantity']
             date = row['timestamp'].strftime('%d/%m/%Y')
-            member_data[date][farm_type] += quantity
+            member_data[date].append({
+                'farm_type': farm_type,
+                'quantity': quantity,
+                'id_farm': row['id_farm']
+            })
 
         member = await ctx.guild.fetch_member(user_id)
         farms_summary = ''
         for date, farms in member_data.items():
             farms_summary += f"**Data: {date}**\n"
-            farms_summary += '\n'.join([f'--> {ft} - {qt}' for ft, qt in farms.items()])
+            farms_summary += '\n'.join([f'--> {farm["farm_type"]} - {farm["quantity"]}' for farm in farms])
             farms_summary += '\n'
+
         await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
+
+        await ctx.send("Deseja ver as imagens de algum farm? (Sim/Não)")
+
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=30.0)
+            if msg.content.lower() in ['sim', 'sí', 's', 'yes']:
+                options = [SelectOption(label=f"{farm['farm_type']} - {farm['quantity']}", value=farm['id_farm']) for date, farms in member_data.items() for farm in farms]
+
+                select = Select(placeholder="Escolha um farm para ver as imagens...", options=options)
+
+                async def select_callback(interaction):
+                    selected_id = select.values[0]
+                    await interaction.response.send_message(f"Buscando imagens para o farm {selected_id}...", ephemeral=True)
+                    await fetch_farm_images(ctx, selected_id)
+
+                select.callback = select_callback
+                view = View()
+                view.add_item(select)
+                await ctx.send("Escolha um farm para ver as imagens:", view=view)
+            else:
+                await ctx.send("Operação encerrada.")
+        except asyncio.TimeoutError:
+            await ctx.send("Tempo esgotado. Operação encerrada.")
     else:
         await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
+
+
+async def fetch_farm_images(ctx, id_farm):
+    farm = get_farm_by_id(id_farm)
+    if farm:
+        await ctx.send(f"Imagens para o farm ID: {id_farm}\nAntes:\n{farm['img_antes']}\nDepois:\n{farm['img_depois']}")
+    else:
+        await ctx.send(f"Nenhum registro encontrado para o ID do farm {id_farm}")
 
 # Comando para exibir a lista de comandos e suas descrições
 @bot.command(name='ajuda')
