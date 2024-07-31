@@ -82,11 +82,15 @@ async def get_valid_passport(user):
 
 async def get_image(user, prompt):
     def check(m):
-        return m.author == user and isinstance(m.channel, discord.DMChannel) and m.attachments
+        return m.author == user and isinstance(m.channel, discord.DMChannel)
     
-    await user.send(prompt)
-    message = await bot.wait_for('message', check=check)
-    return message.attachments[0].url
+    while True:
+        await user.send(prompt)
+        message = await bot.wait_for('message', check=check)
+        if message.attachments:
+            return message.attachments[0].url
+        else:
+            await user.send("🚫 Envie uma imagem válida.")
 
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
@@ -133,8 +137,14 @@ async def farm(ctx):
             farm_type = select.values[0]
             await interaction.response.send_message(f'Tipo de farm selecionado: {farm_type}', ephemeral=True)
             await dm_channel.send('Quantidade: ')
-            quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
-            quantity = int(quantity_msg.content)
+
+            while True:
+                quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
+                if quantity_msg.content.isdigit():
+                    quantity = int(quantity_msg.content)
+                    break
+                else:
+                    await dm_channel.send("🚫 Quantidade inválida. Deve conter apenas números inteiros.")
 
             img_antes = await get_image(user, 'Por favor, envie a imagem de antes de colocar o farm no baú.')
             img_depois = await get_image(user, 'Por favor, envie a imagem de depois de colocar o farm no baú.')
@@ -189,10 +199,12 @@ async def fetch_member_data(ctx, passaporte):
             farm_type = row['farm_type']
             quantity = row['quantity']
             date = row['timestamp'].strftime('%d/%m/%Y')
+            time = row['timestamp'].strftime('%H:%M')
             member_data[date].append({
                 'farm_type': farm_type,
                 'quantity': quantity,
-                'id_farm': row['id_farm']
+                'id_farm': row['id_farm'],
+                'time': time
             })
 
         member = await ctx.guild.fetch_member(user_id)
@@ -202,36 +214,32 @@ async def fetch_member_data(ctx, passaporte):
             farms_summary += '\n'.join([f'--> {farm["farm_type"]} - {farm["quantity"]}' for farm in farms])
             farms_summary += '\n'
 
-        await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
+        await ctx.send(f"Farms registrados por **{member.display_name}** \n{farms_summary}")
 
-        await ctx.send("Deseja ver as imagens de algum farm? (Sim/Não)")
+        options = [SelectOption(label="Não desejo checar nenhum farm", value="no")]
+        options += [
+            SelectOption(
+                label=f"{farm['farm_type']} - {farm['quantity']} - {farm['time']} {date}",
+                value=farm['id_farm']
+            ) for date, farms in member_data.items() for farm in farms
+        ]
 
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
+        select = Select(placeholder="Selecione o farm que deseja checar.", options=options)
 
-        try:
-            msg = await bot.wait_for('message', check=check, timeout=30.0)
-            if msg.content.lower() in ['sim', 'sí', 's', 'yes']:
-                options = [SelectOption(label=f"{farm['farm_type']} - {farm['quantity']}", value=farm['id_farm']) for date, farms in member_data.items() for farm in farms]
-
-                select = Select(placeholder="Escolha um farm para ver as imagens...", options=options)
-
-                async def select_callback(interaction):
-                    selected_id = select.values[0]
-                    await interaction.response.send_message(f"Buscando imagens para o farm {selected_id}...", ephemeral=True)
-                    await fetch_farm_images(ctx, selected_id)
-
-                select.callback = select_callback
-                view = View()
-                view.add_item(select)
-                await ctx.send("Escolha um farm para ver as imagens:", view=view)
+        async def select_callback(interaction):
+            selected_id = select.values[0]
+            if selected_id == "no":
+                await interaction.response.send_message("Checagem encerrada.", ephemeral=True)
             else:
-                await ctx.send("Operação encerrada.")
-        except asyncio.TimeoutError:
-            await ctx.send("Tempo esgotado. Operação encerrada.")
+                await interaction.response.send_message(f"Buscando imagens para o farm {selected_id}...", ephemeral=True)
+                await fetch_farm_images(ctx, selected_id)
+
+        select.callback = select_callback
+        view = View()
+        view.add_item(select)
+        await ctx.send("Se desejar, selecione um farm para ver as imagens:", view=view)
     else:
         await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
-
 
 async def fetch_farm_images(ctx, id_farm):
     farm = get_farm_by_id(id_farm)
