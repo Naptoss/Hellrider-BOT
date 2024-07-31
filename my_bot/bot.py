@@ -18,7 +18,7 @@ intents.message_content = True  # Permite que o bot leia o conteúdo das mensage
 intents.members = True  # Necessário para buscar informações dos membros
 
 # Início da configuração do bot
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Inicialização do bot
 @bot.event
