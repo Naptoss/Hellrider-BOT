@@ -50,6 +50,9 @@ def is_passport_registered(passaporte):
     member = members_collection.find_one({'passaporte': passaporte})
     return member
 
+def get_all_members():
+    return list(members_collection.find())
+
 # Inicialização do bot
 @bot.event
 async def on_ready():
@@ -129,32 +132,36 @@ async def farm(ctx):
     finally:
         del active_farm_commands[channel_id]
 
-# Comando para buscar todos os membros e seus passaportes
-@bot.command(name='buscar_registros')
-async def buscar_registros(ctx):
-    members = members_collection.find()
-    if members:
-        for member in members:
-            await ctx.send(f"**Membro**: <@{member['user_id']}> - {member['passaporte']}")
-    else:
-        await ctx.send("Nenhum membro registrado encontrado.")
-
-# Comando para buscar membro por passaporte
+# Comando para buscar membro por passaporte ou mostrar dropdown de membros registrados
 @bot.command(name='buscar_membro')
 async def buscar_membro(ctx, passaporte: int = None):
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
     if passaporte is None:
-        await ctx.send('Por favor, forneça o passaporte:')
-        passport_msg = await bot.wait_for('message', check=check)
-        passaporte = passport_msg.content
-
-        if not passaporte.isdigit():
-            await ctx.send("🚫 Passaporte inválido. Deve conter apenas números inteiros.")
+        members = get_all_members()
+        if not members:
+            await ctx.send("Nenhum membro registrado encontrado.")
             return
-        passaporte = int(passaporte)
 
+        options = []
+        for member in members:
+            discord_member = await ctx.guild.fetch_member(member['user_id'])
+            display_name = discord_member.display_name if discord_member else member['user_name']
+            options.append(SelectOption(label=f"{display_name} ({member['passaporte']})", value=str(member['passaporte'])))
+        
+        select = Select(placeholder="Escolha um membro para buscar...", options=options)
+
+        async def select_callback(interaction):
+            selected_passaporte = int(select.values[0])
+            await interaction.response.send_message(f"Buscando informações para o passaporte {selected_passaporte}...", ephemeral=True)
+            await fetch_member_data(ctx, selected_passaporte)
+
+        select.callback = select_callback
+        view = View()
+        view.add_item(select)
+        await ctx.send("Escolha um membro para buscar:", view=view)
+    else:
+        await fetch_member_data(ctx, passaporte)
+
+async def fetch_member_data(ctx, passaporte):
     rows = get_member_by_passport(passaporte)
     if rows:
         member_data = defaultdict(lambda: defaultdict(int))
@@ -181,8 +188,7 @@ async def ajuda(ctx):
     help_message = """
     **Comandos Disponíveis:**
     - `/farm`: Registrar uma atividade de farm. O bot irá solicitar o passaporte, tipo de farm e quantidade.
-    - `/buscar_registros`: Buscar todos os membros registrados e seus passaportes.
-    - `/buscar_membro [passaporte]`: Buscar um membro específico pelo passaporte e exibir suas atividades de farm separadas por data. Se o passaporte não for fornecido, o bot solicitará o passaporte.
+    - `/buscar_membro [passaporte]`: Buscar um membro específico pelo passaporte e exibir suas atividades de farm separadas por data. Se o passaporte não for fornecido, o bot apresentará um menu dropdown com todos os membros registrados.
     - `/ajuda`: Exibir a lista de comandos disponíveis e suas descrições.
     """
     await ctx.send(help_message)
