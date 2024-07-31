@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Adicionar o diretório raiz ao sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import discord
 from discord import SelectOption
 from discord.ui import Select, View
@@ -10,14 +16,13 @@ active_farm_commands = {}
 async def farm(ctx, bot):
     user = ctx.author
     user_id = user.id
-    user_name = user.name
     channel_id = ctx.channel.id
 
-    if channel_id in active_farm_commands:
-        await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
+    if user_id in active_farm_commands:
+        await ctx.send(f"{user.mention}, você já está registrando um farm. Conclua o registro atual ou cancele antes de iniciar um novo.")
         return
 
-    active_farm_commands[channel_id] = user_id
+    active_farm_commands[user_id] = channel_id
 
     try:
         await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
@@ -30,7 +35,7 @@ async def farm(ctx, bot):
             await dm_channel.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
             return
 
-        add_member(user_id, user_name, passaporte)
+        add_member(user_id, user.name, passaporte)
 
         options = [
             SelectOption(label="Pólvora", value="Polvora"),
@@ -68,4 +73,4 @@ async def farm(ctx, bot):
         await dm_channel.send("Escolha o tipo de farm:", view=view)
 
     finally:
-        del active_farm_commands[channel_id]
+        del active_farm_commands[user_id]
