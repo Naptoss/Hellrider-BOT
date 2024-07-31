@@ -251,13 +251,59 @@ async def fetch_farm_images(ctx, id_farm):
 # Comando para exibir a lista de comandos e suas descrições
 @bot.command(name='ajuda')
 async def ajuda(ctx):
-    help_message = """
-    **Comandos Disponíveis:**
-    - `/farm`: Registrar uma atividade de farm. O bot irá solicitar o passaporte, tipo de farm, quantidade e duas imagens (antes e depois de colocar o farm no baú).
-    - `/buscar_membro [passaporte]`: Buscar um membro específico pelo passaporte e exibir suas atividades de farm separadas por data. Se o passaporte não for fornecido, o bot apresentará um menu dropdown com todos os membros registrados.
-    - `/ajuda`: Exibir a lista de comandos disponíveis e suas descrições.
-    """
+    help_message = (
+        "**Comandos Disponíveis:**\n"
+        "- `/farm`: Use este comando para registrar uma atividade de farm. O bot irá pedir seu passaporte, tipo de farm, quantidade e duas imagens (uma antes e uma depois de colocar o farm no baú).\n"
+        "- `/buscar_membro [passaporte]`: Use este comando para buscar as atividades de farm de um membro específico pelo passaporte. Se você não fornecer um passaporte, o bot mostrará uma lista de todos os membros registrados para você escolher.\n"
+        "- `/consultar`: Use este comando para ver todos os registros de farm associados ao seu passaporte. O bot enviará as informações diretamente para suas mensagens diretas.\n"
+        "- `/ajuda`: Exibe esta lista de comandos e explica como usar cada um deles."
+    )
     await ctx.send(help_message)
+
+
+
+
+@bot.command(name='consultar')
+async def consultar(ctx):
+    user = ctx.author  # Usuário que invocou o comando
+    user_id = user.id
+
+    # Verificar o passaporte vinculado ao usuário
+    member = members_collection.find_one({'user_id': user_id})
+    if not member:
+        await ctx.send(f"{user.mention}, você não possui nenhum passaporte registrado.")
+        return
+
+    passaporte = member['passaporte']
+
+    # Buscar os registros de farm vinculados ao passaporte
+    rows = get_member_by_passport(passaporte)
+    if rows:
+        member_data = defaultdict(list)
+        for row in rows:
+            farm_type = row['farm_type']
+            quantity = row['quantity']
+            date = row['timestamp'].strftime('%d/%m/%Y')
+            time = row['timestamp'].strftime('%H:%M')
+            member_data[date].append({
+                'farm_type': farm_type,
+                'quantity': quantity,
+                'id_farm': row['id_farm'],
+                'time': time
+            })
+
+        farms_summary = ''
+        for date, farms in member_data.items():
+            farms_summary += f"**Data: {date}**\n"
+            farms_summary += '\n'.join([f'--> {farm["farm_type"]} - {farm["quantity"]}' for farm in farms])
+            farms_summary += '\n'
+
+        dm_channel = await user.create_dm()
+        await dm_channel.send(f"**Membro** {user.name}:\n{farms_summary}")
+        await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para ver seus registros de farm.")
+    else:
+        await ctx.send(f"{user.mention}, nenhum registro de farm encontrado para o passaporte {passaporte}.")
+
 
 # Iniciar o bot
 load_dotenv()
