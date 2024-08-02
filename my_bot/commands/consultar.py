@@ -1,11 +1,18 @@
 import discord
-from my_bot.db import get_member_by_passport, get_farm_by_id
+from my_bot.db import get_member_by_passport, get_farm_by_id, is_passport_registered
 
 async def consultar(ctx, bot):
     user = ctx.author
     user_id = user.id
 
-    member_data = get_member_by_passport(user_id)
+    # Verificar se o passaporte do usuário está registrado
+    member = is_passport_registered(user_id)
+    if not member:
+        await ctx.send("Nenhum passaporte registrado para seu usuário.")
+        return
+
+    passaporte = member['passaporte']
+    member_data = get_member_by_passport(passaporte)
     if not member_data:
         await ctx.send("Nenhum registro de farm encontrado para seu passaporte.")
         return

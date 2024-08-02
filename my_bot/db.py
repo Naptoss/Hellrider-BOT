@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-# Conectar ao MongoDB
 
+# Conectar ao MongoDB
 load_dotenv()
 mongo_uri = os.getenv('MONGO_URI')
 client = MongoClient(mongo_uri)
