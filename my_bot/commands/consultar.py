@@ -46,8 +46,12 @@ async def consultar(ctx, bot):
     await ctx.send(f"{user.mention}, verifique suas mensagens diretas para ver seus registros de farm.")
 
 async def fetch_farm_images(ctx, id_farm):
+    user = ctx.author
+
+    dm_channel = await user.create_dm()
+
     farm = get_farm_by_id(id_farm)
     if farm:
-        await ctx.send(f"Imagens para o farm ID: {id_farm}\nAntes:\n{farm['img_antes']}\nDepois:\n{farm['img_depois']}")
+        await dm_channel.send(f"Imagens para o farm ID: {id_farm}\nAntes:\n{farm['img_antes']}\nDepois:\n{farm['img_depois']}")
     else:
-        await ctx.send(f"Nenhum registro encontrado para o ID do farm {id_farm}")
+        await dm_channel.send(f"Nenhum registro encontrado para o ID do farm {id_farm}")
