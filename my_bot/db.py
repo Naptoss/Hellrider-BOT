@@ -43,7 +43,7 @@ def is_passport_registered(passaporte):
     return member
 
 
-def is_passport_registered(user_id):
+def is_user_registered(user_id):
     member = members_collection.find_one({'user_id': user_id})
     return member
 
