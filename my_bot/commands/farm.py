@@ -56,8 +56,8 @@ async def farm(ctx, bot):
                 else:
                     await dm_channel.send("🚫 Quantidade inválida. Deve conter apenas números inteiros.")
 
-            img_antes = await get_image(bot, user, 'Por favor, envie a imagem de antes de colocar o farm no baú.')
-            img_depois = await get_image(bot, user, 'Por favor, envie a imagem de depois de colocar o farm no baú.')
+            img_antes = await get_image(bot, user, 'Por favor, envie uma imagem de antes de colocar o farm no baú.')
+            img_depois = await get_image(bot, user, 'Por favor, envie uma imagem de depois de colocar o farm no baú.')
 
             add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois)
             await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
