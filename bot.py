@@ -3,6 +3,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import os
 import sys
+import asyncio
 
 # Adicionar o diretório raiz ao sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -34,27 +35,40 @@ async def farm_command(ctx):
 # Comando para buscar membro por passaporte ou mostrar dropdown de membros registrados
 @bot.command(name='buscar_membro')
 async def buscar_membro_command(ctx, passaporte: int = None):
+    # Verifica se o comando está sendo usado no canal correto
+    farm_channel_id = int(os.getenv('FARM_CHANNEL_ID'))
+    if ctx.channel.id != farm_channel_id:
+        msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal apropriado. Caso deseje checar os seus registros até o momento, utilize o comando '!consultar'.")
+        await asyncio.sleep(30)
+        await msg.delete()
+        return
+    
     await buscar_membro(ctx, bot, passaporte)
 
 # Comando para consultar registros de farm do usuário
 @bot.command(name='consultar')
 async def consultar_command(ctx):
-    await consultar(ctx, bot)
+    msg = await consultar(ctx, bot)
+    await asyncio.sleep(30)
+    await msg.delete()
 
 # Comando para exibir a lista de comandos e suas descrições
 @bot.command(name='ajuda')
 async def ajuda_command(ctx):
-    await ajuda(ctx)
+    msg = await ajuda(ctx)
+    await asyncio.sleep(30)
+    await msg.delete()
 
-# Comando para pagar um membro
+# Comando para pagar membro
 @bot.command(name='pagar_membro')
 async def pagar_membro_command(ctx):
-    await pagar_membro(ctx, bot)
+    msg = await pagar_membro(ctx, bot)
+    await asyncio.sleep(30)
+    await msg.delete()
 
 # Iniciar o bot
 load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
-FARM_CHANNEL_ID = int(os.getenv('FARM_CHANNEL_ID'))
 
 try:
     bot.run(token)
