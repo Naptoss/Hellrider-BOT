@@ -34,12 +34,6 @@ async def farm_command(ctx):
 # Comando para buscar membro por passaporte ou mostrar dropdown de membros registrados
 @bot.command(name='buscar_membro')
 async def buscar_membro_command(ctx, passaporte: int = None):
-    # Verificar se o comando está sendo usado no canal específico
-    restricted_channel_id = 1268640796991688765
-    if ctx.channel.id != restricted_channel_id:
-        await ctx.send("🚫 Este comando está restrito ao canal de consulta de farm.")
-        return
-    
     await buscar_membro(ctx, bot, passaporte)
 
 # Comando para consultar registros de farm do usuário
@@ -52,7 +46,7 @@ async def consultar_command(ctx):
 async def ajuda_command(ctx):
     await ajuda(ctx)
 
-# Comando para pagar membro
+# Comando para pagar um membro
 @bot.command(name='pagar_membro')
 async def pagar_membro_command(ctx):
     await pagar_membro(ctx, bot)

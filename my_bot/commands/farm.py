@@ -23,7 +23,11 @@ async def farm(ctx, bot):
         await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
         dm_channel = await user.create_dm()
 
+        print(f"Enviando DM para {user_name} ({user_id})")
+
         passaporte = await get_valid_passport(bot, user)
+
+        print(f"Passaporte recebido: {passaporte}")
 
         registered_member = is_passport_registered(passaporte)
         if registered_member and registered_member['user_id'] != user_id:
@@ -69,3 +73,5 @@ async def farm(ctx, bot):
 
     finally:
         del active_farm_commands[channel_id]
+        print(f"Removido comando ativo para {user_name} ({user_id})")
+
