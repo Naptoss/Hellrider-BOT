@@ -50,3 +50,14 @@ def is_user_registered(user_id):
 
 def get_all_members():
     return list(members_collection.find())
+
+def add_payment_log(passaporte, valor):
+    payments_collection = db['payments']
+    payments_collection.insert_one({
+        'passaporte': passaporte,
+        'valor': valor,
+        'timestamp': datetime.utcnow()
+    })
+
+def clear_member_farms(passaporte):
+    farm_logs_collection.delete_many({'passaporte': passaporte})

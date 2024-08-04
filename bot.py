@@ -11,6 +11,7 @@ from my_bot.commands.farm import farm
 from my_bot.commands.buscar_membro import buscar_membro
 from my_bot.commands.consultar import consultar
 from my_bot.commands.ajuda import ajuda
+from my_bot.commands.pagar_membro import pagar_membro
 
 # Configurar as intents
 intents = discord.Intents.default()
@@ -52,9 +53,9 @@ async def ajuda_command(ctx):
     await ajuda(ctx)
 
 # Comando para pagar membro
-# @bot.command(name='pagar_membro')
-# async def pagar_membro_command(ctx):          # Precisa corrigir o comando de pagar membro logo 
-#     await pagar_membro(ctx, bot)
+@bot.command(name='pagar_membro')
+async def pagar_membro_command(ctx):
+    await pagar_membro(ctx, bot)
 
 # Iniciar o bot
 load_dotenv()
