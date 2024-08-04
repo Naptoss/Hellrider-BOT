@@ -14,7 +14,9 @@ async def farm(ctx, bot):
     channel_id = ctx.channel.id
 
     if channel_id in active_farm_commands:
-        await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
+        msg = await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
+        await asyncio.sleep(30)
+        await msg.delete()
         return
 
     active_farm_commands[channel_id] = user_id
@@ -50,15 +52,17 @@ async def farm(ctx, bot):
 
             farm_type = select.values[0]
             await interaction.response.send_message(f'Tipo de farm selecionado: {farm_type}', ephemeral=True)
-            await dm_channel.send('Quantidade: ')
 
-            select.disabled = True  # Desabilitar o dropdown após a seleção
+            # Desabilitar o dropdown após a seleção
+            select.disabled = True
             await interaction.message.edit(view=view)
 
+            msg = await dm_channel.send('Quantidade: ')
             while True:
                 quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
                 if quantity_msg.content.isdigit():
                     quantity = int(quantity_msg.content)
+                    await msg.delete()
                     break
                 else:
                     msg = await dm_channel.send("🚫 Quantidade inválida. Deve conter apenas números inteiros.")
@@ -76,7 +80,9 @@ async def farm(ctx, bot):
         select.callback = select_callback
         view = View()
         view.add_item(select)
-        await dm_channel.send("Escolha o tipo de farm:", view=view)
+        msg = await dm_channel.send("Escolha o tipo de farm:", view=view)
+        await asyncio.sleep(30)
+        await msg.delete()
 
     finally:
         del active_farm_commands[channel_id]
