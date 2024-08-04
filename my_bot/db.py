@@ -42,11 +42,9 @@ def is_passport_registered(passaporte):
     member = members_collection.find_one({'passaporte': passaporte})
     return member
 
-
 def is_user_registered(user_id):
     member = members_collection.find_one({'user_id': user_id})
     return member
-
 
 def get_all_members():
     return list(members_collection.find())
