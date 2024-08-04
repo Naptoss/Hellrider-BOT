@@ -3,13 +3,22 @@ from discord import SelectOption
 from discord.ui import Select, View
 from collections import defaultdict
 import asyncio
+from bot import FARM_CHANNEL_ID
 from my_bot.db import get_member_by_passport, get_all_members, get_farm_by_id
 
 async def buscar_membro(ctx, bot, passaporte: int = None):
+    if ctx.channel.id != FARM_CHANNEL_ID:
+        msg = await ctx.send("🚫 Este comando não pode ser usado neste canal. Se deseja ver seu farm utilize o comando '!consultar' e siga as instruções.")
+        await asyncio.sleep(30)
+        await msg.delete()
+        return
+
     if passaporte is None:
         members = get_all_members()
         if not members:
-            await ctx.send("Nenhum membro registrado encontrado.")
+            msg = await ctx.send("Nenhum membro registrado encontrado.")
+            await asyncio.sleep(30)
+            await msg.delete()
             return
 
         options = []
@@ -24,13 +33,18 @@ async def buscar_membro(ctx, bot, passaporte: int = None):
             selected_passaporte = int(select.values[0])
             await interaction.response.send_message(f"Buscando informações para o passaporte {selected_passaporte}...", ephemeral=True)
             await fetch_member_data(ctx, bot, selected_passaporte)  # Passar bot aqui também
+            select.disabled = True  # Desabilitar o dropdown após a seleção
+            await interaction.message.edit(view=view)
 
         select.callback = select_callback
         view = View()
         view.add_item(select)
-        await ctx.send("Escolha um membro para buscar:", view=view)
+        msg = await ctx.send("Escolha um membro para buscar:", view=view)
+        await asyncio.sleep(30)
+        await msg.delete()
     else:
         await fetch_member_data(ctx, bot, passaporte)  # Passar bot aqui também
+
 
 async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetro
     rows = get_member_by_passport(passaporte)
