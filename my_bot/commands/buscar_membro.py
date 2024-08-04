@@ -12,38 +12,39 @@ async def buscar_membro(ctx, bot, passaporte: int = None):
         await asyncio.sleep(30)
         await msg.delete()
         return
+    
+    else:
+        if passaporte is None:
+            members = get_all_members()
+            if not members:
+                msg = await ctx.send("Nenhum membro registrado encontrado.")
+                await asyncio.sleep(30)
+                await msg.delete()
+                return
 
-    if passaporte is None:
-        members = get_all_members()
-        if not members:
-            msg = await ctx.send("Nenhum membro registrado encontrado.")
+            options = []
+            for member in members:
+                discord_member = await ctx.guild.fetch_member(member['user_id'])
+                display_name = discord_member.display_name if discord_member else member['user_name']
+                options.append(SelectOption(label=f"{display_name} ({member['passaporte']})", value=str(member['passaporte'])))
+            
+            select = Select(placeholder="Escolha um membro para buscar...", options=options)
+
+            async def select_callback(interaction):
+                selected_passaporte = int(select.values[0])
+                await interaction.response.send_message(f"Buscando informações para o passaporte {selected_passaporte}...", ephemeral=True)
+                await fetch_member_data(ctx, bot, selected_passaporte)  # Passar bot aqui também
+                select.disabled = True  # Desabilitar o dropdown após a seleção
+                await interaction.message.edit(view=view)
+
+            select.callback = select_callback
+            view = View()
+            view.add_item(select)
+            msg = await ctx.send("Escolha um membro para buscar:", view=view)
             await asyncio.sleep(30)
             await msg.delete()
-            return
-
-        options = []
-        for member in members:
-            discord_member = await ctx.guild.fetch_member(member['user_id'])
-            display_name = discord_member.display_name if discord_member else member['user_name']
-            options.append(SelectOption(label=f"{display_name} ({member['passaporte']})", value=str(member['passaporte'])))
-        
-        select = Select(placeholder="Escolha um membro para buscar...", options=options)
-
-        async def select_callback(interaction):
-            selected_passaporte = int(select.values[0])
-            await interaction.response.send_message(f"Buscando informações para o passaporte {selected_passaporte}...", ephemeral=True)
-            await fetch_member_data(ctx, bot, selected_passaporte)  # Passar bot aqui também
-            select.disabled = True  # Desabilitar o dropdown após a seleção
-            await interaction.message.edit(view=view)
-
-        select.callback = select_callback
-        view = View()
-        view.add_item(select)
-        msg = await ctx.send("Escolha um membro para buscar:", view=view)
-        await asyncio.sleep(30)
-        await msg.delete()
-    else:
-        await fetch_member_data(ctx, bot, passaporte)  # Passar bot aqui também
+        else:
+            await fetch_member_data(ctx, bot, passaporte)  # Passar bot aqui também
 
 
 async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetro
