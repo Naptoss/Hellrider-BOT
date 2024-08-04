@@ -1,10 +1,14 @@
+import os
 import discord
 from discord import SelectOption
 from discord.ui import Select, View
 from collections import defaultdict
+from dotenv import load_dotenv
 import asyncio
-from bot import FARM_CHANNEL_ID
 from my_bot.db import get_member_by_passport, get_all_members, get_farm_by_id
+
+load_dotenv()
+FARM_CHANNEL_ID = int(os.getenv('FARM_CHANNEL_ID'))
 
 async def buscar_membro(ctx, bot, passaporte: int = None):
     if ctx.channel.id != FARM_CHANNEL_ID:
