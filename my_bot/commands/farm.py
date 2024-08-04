@@ -7,8 +7,6 @@ from my_bot.utils import get_valid_passport, get_image
 
 active_farm_commands = {}
 
-
-
 async def farm(ctx, bot):
     user = ctx.author
     user_id = user.id
@@ -16,13 +14,11 @@ async def farm(ctx, bot):
     channel_id = ctx.channel.id
 
     if channel_id in active_farm_commands:
-        msg = await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
-        await asyncio.sleep(30)
-        await msg.delete()
+        await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
         return
 
     active_farm_commands[channel_id] = user_id
-    
+
     try:
         msg = await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
         await asyncio.sleep(30)
