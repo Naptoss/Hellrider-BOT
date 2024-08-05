@@ -26,14 +26,14 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 MONGO_URI = os.getenv('MONGO_URI')
-FARM_CHANNEL_ID = os.getenv('FARM_CHANNEL_ID')
+FARM_CHANNEL_IDS = os.getenv('FARM_CHANNEL_IDS')
 
-# Verificar se a variável FARM_CHANNEL_ID está definida
-if FARM_CHANNEL_ID is None:
-    print("Error: FARM_CHANNEL_ID is not set in the environment variables.")
+# Verificar se a variável FARM_CHANNEL_IDS está definida
+if FARM_CHANNEL_IDS is None:
+    print("Error: FARM_CHANNEL_IDS is not set in the environment variables.")
     exit(1)
 else:
-    FARM_CHANNEL_ID = int(FARM_CHANNEL_ID)
+    FARM_CHANNEL_IDS = [int(id) for id in FARM_CHANNEL_IDS.split(',')]
 
 # Inicialização do bot
 @bot.event
@@ -49,8 +49,8 @@ async def farm_command(ctx):
 @bot.command(name='buscar_membro')
 async def buscar_membro_command(ctx, passaporte: int = None):
     # Verifica se o comando está sendo usado no canal correto
-    if ctx.channel.id != FARM_CHANNEL_ID:
-        msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal de farm.")
+    if ctx.channel.id not in FARM_CHANNEL_IDS:
+        msg = await ctx.send(f"🚫 Este comando só pode ser usado nos canais de farm.")
         await asyncio.sleep(30)
         await msg.delete()
         return
