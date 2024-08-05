@@ -51,6 +51,8 @@ async def buscar_membro_command(ctx, passaporte: int = None):
     # Verifica se o comando está sendo usado no canal correto
     if ctx.channel.id not in FARM_CHANNEL_IDS:
         msg = await ctx.send(f"🚫 Este comando só pode ser usado nos canais de farm.")
+        await asyncio.sleep(30)
+        await msg.delete()
         return
     
     await buscar_membro(ctx, bot, passaporte)
@@ -59,19 +61,22 @@ async def buscar_membro_command(ctx, passaporte: int = None):
 @bot.command(name='consultar')
 async def consultar_command(ctx):
     msg = await consultar(ctx, bot)
-    
+    await asyncio.sleep(30)
+    await msg.delete()
 
 # Comando para exibir a lista de comandos e suas descrições
 @bot.command(name='ajuda')
 async def ajuda_command(ctx):
     msg = await ajuda(ctx)
-    
+    await asyncio.sleep(30)
+    await msg.delete()
 
 # Comando para pagar membro
 @bot.command(name='pagar_membro')
 async def pagar_membro_command(ctx):
     msg = await pagar_membro(ctx, bot)
-    
+    await asyncio.sleep(30)
+    await msg.delete()
 
 # Iniciar o bot
 try:
