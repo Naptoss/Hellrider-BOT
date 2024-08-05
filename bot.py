@@ -37,6 +37,7 @@ async def farm_command(ctx):
 # Comando para buscar membro por passaporte ou mostrar dropdown de membros registrados
 @bot.command(name='buscar_membro')
 async def buscar_membro_command(ctx, passaporte: int = None):
+    farm_channel_id = os.getenv('FARM_CHANNEL_ID')
     if ctx.channel.id != farm_channel_id:
         msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal de farm.")
         await asyncio.sleep(30)
