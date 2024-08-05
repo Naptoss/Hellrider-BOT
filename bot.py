@@ -72,6 +72,8 @@ async def pagar_membro_command(ctx):
 # Iniciar o bot
 load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
+farm_channel_id = os.getenv('FARM_CHANNEL_ID')
+
 
 try:
     bot.run(token)
