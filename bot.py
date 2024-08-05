@@ -82,3 +82,9 @@ try:
     bot.run(token)
 except KeyboardInterrupt:
     print("Bot desligado manualmente.")
+
+
+load_dotenv()
+DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+MONGO_URI = os.getenv('MONGO_URI')
+FARM_CHANNEL_ID = os.getenv('FARM_CHANNEL_ID')
