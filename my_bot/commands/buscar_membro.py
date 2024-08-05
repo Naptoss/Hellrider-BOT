@@ -31,8 +31,7 @@ async def buscar_membro(ctx, bot, passaporte: int = None):
         view = View()
         view.add_item(select)
         msg = await ctx.send("Escolha um membro para buscar:", view=view)
-        await asyncio.sleep(30)
-        await msg.delete()
+
     else:
         await fetch_member_data(ctx, bot, passaporte)  # Passar bot aqui também
 
@@ -61,8 +60,6 @@ async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetr
             farms_summary += '\n'
 
         msg = await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
-        await asyncio.sleep(30)
-        await msg.delete()
 
         # Criar menu dropdown para verificar as imagens
         options = [SelectOption(label="Não", value="no")]
@@ -85,20 +82,12 @@ async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetr
         view = View()
         view.add_item(select)
         msg = await ctx.send("Escolha um farm para ver as imagens:", view=view)
-        await asyncio.sleep(30)
-        await msg.delete()
     else:
         msg = await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
-        await asyncio.sleep(30)
-        await msg.delete()
 
 async def fetch_farm_images(ctx, id_farm):
     farm = get_farm_by_id(id_farm)
     if farm:
         msg = await ctx.send(f"Imagens para o farm ID: {id_farm}\nAntes:\n{farm['img_antes']}\nDepois:\n{farm['img_depois']}")
-        await asyncio.sleep(30)
-        await msg.delete()
     else:
         msg = await ctx.send(f"Nenhum registro encontrado para o ID do farm {id_farm}")
-        await asyncio.sleep(30)
-        await msg.delete()

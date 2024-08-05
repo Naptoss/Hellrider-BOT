@@ -30,7 +30,9 @@ async def on_ready():
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
 async def farm_command(ctx):
-    await farm(ctx, bot)
+    msg = await farm(ctx, bot)
+    await asyncio.sleep(30)
+    await msg.delete()
 
 # Comando para buscar membro por passaporte ou mostrar dropdown de membros registrados
 @bot.command(name='buscar_membro')
@@ -39,41 +41,39 @@ async def buscar_membro_command(ctx, passaporte: int = None):
     if ctx.channel.id != farm_channel_id:
         msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal de farm.")
         await asyncio.sleep(30)
-        if msg:
-            await msg.delete()
+        await msg.delete()
         return
     
-    await buscar_membro(ctx, bot, passaporte)
+    else:
+        msg = await buscar_membro(ctx, bot, passaporte)
+        await asyncio.sleep(30)
+        await msg.delete()
 
 # Comando para consultar registros de farm do usuário
 @bot.command(name='consultar')
 async def consultar_command(ctx):
     msg = await consultar(ctx, bot)
     await asyncio.sleep(30)
-    if msg:
-        await msg.delete()
+    await msg.delete()
 
 # Comando para exibir a lista de comandos e suas descrições
 @bot.command(name='ajuda')
 async def ajuda_command(ctx):
     msg = await ajuda(ctx)
     await asyncio.sleep(30)
-    if msg:
-        await msg.delete()
+    await msg.delete()
 
 # Comando para pagar membro
 @bot.command(name='pagar_membro')
 async def pagar_membro_command(ctx):
     msg = await pagar_membro(ctx, bot)
     await asyncio.sleep(30)
-    if msg:
-        await msg.delete()
+    await msg.delete()
 
 # Iniciar o bot
 load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
 farm_channel_id = os.getenv('FARM_CHANNEL_ID')
-
 
 try:
     bot.run(token)
