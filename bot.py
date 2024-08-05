@@ -26,14 +26,14 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 MONGO_URI = os.getenv('MONGO_URI')
-FARM_CHANNEL_IDS = os.getenv('FARM_CHANNEL_IDS')
+FARM_CHANNEL_ID = os.getenv('FARM_CHANNEL_ID')
 
 # Verificar se a variável FARM_CHANNEL_IDS está definida
-if FARM_CHANNEL_IDS is None:
+if FARM_CHANNEL_ID is None:
     print("Error: FARM_CHANNEL_IDS is not set in the environment variables.")
     exit(1)
 else:
-    FARM_CHANNEL_IDS = [int(id) for id in FARM_CHANNEL_IDS.split(',')]
+    FARM_CHANNEL_IDS = [int(id) for id in FARM_CHANNEL_ID.split(',')]
 
 # Inicialização do bot
 @bot.event
