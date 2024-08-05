@@ -22,19 +22,6 @@ intents.members = True  # Necessário para buscar informações dos membros
 # Início da configuração do bot
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# Carregar variáveis de ambiente
-load_dotenv()
-DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-MONGO_URI = os.getenv('MONGO_URI')
-FARM_CHANNEL_ID = os.getenv('FARM_CHANNEL_ID')
-
-# Verificar se a variável FARM_CHANNEL_IDS está definida
-if FARM_CHANNEL_ID is None:
-    print("Error: FARM_CHANNEL_IDS is not set in the environment variables.")
-    exit(1)
-else:
-    FARM_CHANNEL_IDS = [int(id) for id in FARM_CHANNEL_ID.split(',')]
-
 # Inicialização do bot
 @bot.event
 async def on_ready():
@@ -49,10 +36,12 @@ async def farm_command(ctx):
 @bot.command(name='buscar_membro')
 async def buscar_membro_command(ctx, passaporte: int = None):
     # Verifica se o comando está sendo usado no canal correto
-    if ctx.channel.id not in FARM_CHANNEL_IDS:
-        msg = await ctx.send(f"🚫 Este comando só pode ser usado nos canais de farm.")
+    farm_channel_id = int(os.getenv('FARM_CHANNEL_ID'))
+    if ctx.channel.id != farm_channel_id:
+        msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal de farm.")
         await asyncio.sleep(30)
-        await msg.delete()
+        if msg:
+            await msg.delete()
         return
     
     await buscar_membro(ctx, bot, passaporte)
@@ -62,24 +51,31 @@ async def buscar_membro_command(ctx, passaporte: int = None):
 async def consultar_command(ctx):
     msg = await consultar(ctx, bot)
     await asyncio.sleep(30)
-    await msg.delete()
+    if msg:
+        await msg.delete()
 
 # Comando para exibir a lista de comandos e suas descrições
 @bot.command(name='ajuda')
 async def ajuda_command(ctx):
     msg = await ajuda(ctx)
     await asyncio.sleep(30)
-    await msg.delete()
+    if msg:
+        await msg.delete()
 
 # Comando para pagar membro
 @bot.command(name='pagar_membro')
 async def pagar_membro_command(ctx):
     msg = await pagar_membro(ctx, bot)
     await asyncio.sleep(30)
-    await msg.delete()
+    if msg:
+        await msg.delete()
 
 # Iniciar o bot
+load_dotenv()
+token = os.getenv('DISCORD_BOT_TOKEN')
+
 try:
-    bot.run(DISCORD_BOT_TOKEN)
+    bot.run(token)
 except KeyboardInterrupt:
     print("Bot desligado manualmente.")
+ 

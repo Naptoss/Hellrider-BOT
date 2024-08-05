@@ -16,7 +16,8 @@ async def farm(ctx, bot):
     if channel_id in active_farm_commands:
         msg = await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
         await asyncio.sleep(30)
-        await msg.delete()
+        if msg:
+            await msg.delete()
         return
 
     active_farm_commands[channel_id] = user_id
@@ -24,7 +25,8 @@ async def farm(ctx, bot):
     try:
         msg = await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
         await asyncio.sleep(30)
-        await msg.delete()
+        if msg:
+            await msg.delete()
         dm_channel = await user.create_dm()
 
         passaporte = await get_valid_passport(bot, user)
@@ -33,7 +35,8 @@ async def farm(ctx, bot):
         if registered_member and registered_member['user_id'] != user_id:
             msg = await dm_channel.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
             await asyncio.sleep(30)
-            await msg.delete()
+            if msg:
+                await msg.delete()
             return
 
         add_member(user_id, user_name, passaporte)
@@ -62,12 +65,14 @@ async def farm(ctx, bot):
                 quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
                 if quantity_msg.content.isdigit():
                     quantity = int(quantity_msg.content)
-                    await msg.delete()
+                    if msg:
+                        await msg.delete()
                     break
                 else:
                     msg = await dm_channel.send("🚫 Quantidade inválida. Deve conter apenas números inteiros.")
                     await asyncio.sleep(30)
-                    await msg.delete()
+                    if msg:
+                        await msg.delete()
 
             img_antes = await get_image(bot, user, 'Por favor, envie uma imagem de antes de colocar o farm no baú.')
             img_depois = await get_image(bot, user, 'Por favor, envie uma imagem de depois de colocar o farm no baú.')
@@ -75,14 +80,16 @@ async def farm(ctx, bot):
             add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois)
             success_msg = await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
             await asyncio.sleep(30)
-            await success_msg.delete()
+            if success_msg:
+                await success_msg.delete()
 
         select.callback = select_callback
         view = View()
         view.add_item(select)
         msg = await dm_channel.send("Escolha o tipo de farm:", view=view)
         await asyncio.sleep(30)
-        await msg.delete()
+        if msg:
+            await msg.delete()
 
     finally:
         del active_farm_commands[channel_id]
