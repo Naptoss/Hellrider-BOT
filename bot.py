@@ -27,6 +27,16 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 async def on_ready():
     print(f'Bot {bot.user} ready')
 
+# Verificar se a variável FARM_CHANNEL_ID está definida
+load_dotenv()
+try:
+    FARM_CHANNEL_ID = int(os.getenv('FARM_CHANNEL_ID'))
+    if FARM_CHANNEL_ID is None:
+        raise ValueError("FARM_CHANNEL_ID is not set in the environment variables.")
+except ValueError as e:
+    print(f"Error: {e}")
+    exit(1)
+
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
 async def farm_command(ctx):
@@ -36,9 +46,8 @@ async def farm_command(ctx):
 @bot.command(name='buscar_membro')
 async def buscar_membro_command(ctx, passaporte: int = None):
     # Verifica se o comando está sendo usado no canal correto
-    farm_channel_id = int(os.getenv('FARM_CHANNEL_ID'))
-    if ctx.channel.id != farm_channel_id:
-        msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal apropriado. Caso deseje checar os seus registros até o momento, utilize o comando '!consultar'.")
+    if ctx.channel.id != FARM_CHANNEL_ID:
+        msg = await ctx.send(f"🚫 Este comando só pode ser usado no canal de farm.")
         await asyncio.sleep(30)
         await msg.delete()
         return
@@ -67,7 +76,6 @@ async def pagar_membro_command(ctx):
     await msg.delete()
 
 # Iniciar o bot
-load_dotenv()
 token = os.getenv('DISCORD_BOT_TOKEN')
 
 try:
