@@ -22,20 +22,23 @@ intents.members = True  # Necessário para buscar informações dos membros
 # Início da configuração do bot
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+# Carregar variáveis de ambiente
+load_dotenv()
+DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+MONGO_URI = os.getenv('MONGO_URI')
+FARM_CHANNEL_ID = os.getenv('FARM_CHANNEL_ID')
+
+# Verificar se a variável FARM_CHANNEL_ID está definida
+if FARM_CHANNEL_ID is None:
+    print("Error: FARM_CHANNEL_ID is not set in the environment variables.")
+    exit(1)
+else:
+    FARM_CHANNEL_ID = int(FARM_CHANNEL_ID)
+
 # Inicialização do bot
 @bot.event
 async def on_ready():
     print(f'Bot {bot.user} ready')
-
-# Verificar se a variável FARM_CHANNEL_ID está definida
-load_dotenv()
-try:
-    FARM_CHANNEL_ID = int(os.getenv('FARM_CHANNEL_ID'))
-    if FARM_CHANNEL_ID is None:
-        raise ValueError("FARM_CHANNEL_ID is not set in the environment variables.")
-except ValueError as e:
-    print(f"Error: {e}")
-    exit(1)
 
 # Comando para registrar membro e adicionar farm
 @bot.command(name='farm')
@@ -76,15 +79,7 @@ async def pagar_membro_command(ctx):
     await msg.delete()
 
 # Iniciar o bot
-token = os.getenv('DISCORD_BOT_TOKEN')
-
 try:
-    bot.run(token)
+    bot.run(DISCORD_BOT_TOKEN)
 except KeyboardInterrupt:
     print("Bot desligado manualmente.")
-
-
-load_dotenv()
-DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-MONGO_URI = os.getenv('MONGO_URI')
-FARM_CHANNEL_ID = os.getenv('FARM_CHANNEL_ID')
