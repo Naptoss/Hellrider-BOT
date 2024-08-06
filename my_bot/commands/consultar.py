@@ -1,4 +1,3 @@
-import asyncio
 import discord
 from my_bot.db import get_member_by_passport, get_farm_by_id, is_passport_registered, is_user_registered
 
@@ -9,17 +8,13 @@ async def consultar(ctx, bot):
     # Verificar se o passaporte do usuário está registrado
     member = is_user_registered(user_id)
     if not member:
-        msg = await ctx.send("Nenhum passaporte registrado para seu usuário.")
-        await asyncio.sleep(30)
-        await msg.delete()
+        await ctx.send("Nenhum passaporte registrado para seu usuário.")
         return
 
     passaporte = member['passaporte']
     member_data = get_member_by_passport(passaporte)
     if not member_data:
-        msg = await ctx.send("Nenhum registro de farm encontrado para seu passaporte.")
-        await asyncio.sleep(30)
-        await msg.delete()
+        await ctx.send("Nenhum registro de farm encontrado para seu passaporte.")
         return
 
     dm_channel = await user.create_dm()
@@ -48,10 +43,7 @@ async def consultar(ctx, bot):
     view = discord.ui.View()
     view.add_item(select)
     await dm_channel.send("Escolha um registro para ver as imagens:", view=view)
-    msg = await ctx.send(f"{user.mention}, verifique suas mensagens diretas para ver seus registros de farm.")
-    await asyncio.sleep(30)
-    await msg.delete()
-
+    await ctx.send(f"{user.mention}, verifique suas mensagens diretas para ver seus registros de farm.")
 
 async def fetch_farm_images(ctx, id_farm):
     user = ctx.author

@@ -14,24 +14,24 @@ async def farm(ctx, bot):
     channel_id = ctx.channel.id
 
     if channel_id in active_farm_commands:
-        msg = await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
-        await asyncio.sleep(30)
-        await msg.delete()
+        await ctx.send(f"🚫 Outro usuário já está utilizando o comando /farm neste canal. Por favor, aguarde.")
         return
 
     active_farm_commands[channel_id] = user_id
 
     try:
-        msg = await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
+        await ctx.send(f"{user.mention}, por favor, verifique suas mensagens diretas para continuar o registro do farm.")
         dm_channel = await user.create_dm()
-        await asyncio.sleep(30)
-        await msg.delete()
+
+        print(f"Enviando DM para {user_name} ({user_id})")
 
         passaporte = await get_valid_passport(bot, user)
 
+        print(f"Passaporte recebido: {passaporte}")
+
         registered_member = is_passport_registered(passaporte)
         if registered_member and registered_member['user_id'] != user_id:
-            msg = await dm_channel.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
+            await dm_channel.send(f"🚫 O passaporte {passaporte} já está registrado por outro usuário.")
             return
 
         add_member(user_id, user_name, passaporte)
@@ -50,32 +50,28 @@ async def farm(ctx, bot):
 
             farm_type = select.values[0]
             await interaction.response.send_message(f'Tipo de farm selecionado: {farm_type}', ephemeral=True)
+            await dm_channel.send('Quantidade: ')
 
-            # Desabilitar o dropdown após a seleção
-            select.disabled = True
-            await interaction.message.edit(view=view)
-
-            msg = await dm_channel.send('Quantidade: ')
             while True:
                 quantity_msg = await bot.wait_for('message', check=lambda m: m.author == user and isinstance(m.channel, discord.DMChannel))
                 if quantity_msg.content.isdigit():
                     quantity = int(quantity_msg.content)
                     break
                 else:
-                    msg = await dm_channel.send("🚫 Quantidade inválida. Deve conter apenas números inteiros.")
+                    await dm_channel.send("🚫 Quantidade inválida. Deve conter apenas números inteiros.")
 
             img_antes = await get_image(bot, user, 'Por favor, envie uma imagem de antes de colocar o farm no baú.')
             img_depois = await get_image(bot, user, 'Por favor, envie uma imagem de depois de colocar o farm no baú.')
 
             add_farm_log(user_id, passaporte, farm_type, quantity, img_antes, img_depois)
-            success_msg = await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
-            await asyncio.sleep(30)
-            await success_msg.delete()
+            await ctx.send(f"Farm adicionado com sucesso ao membro {user.mention}")
 
         select.callback = select_callback
         view = View()
         view.add_item(select)
-        msg = await dm_channel.send("Escolha o tipo de farm:", view=view)
+        await dm_channel.send("Escolha o tipo de farm:", view=view)
 
     finally:
         del active_farm_commands[channel_id]
+        print(f"Removido comando ativo para {user_name} ({user_id})")
+

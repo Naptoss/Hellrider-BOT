@@ -9,9 +9,7 @@ async def buscar_membro(ctx, bot, passaporte: int = None):
     if passaporte is None:
         members = get_all_members()
         if not members:
-            msg = await ctx.send("Nenhum membro registrado encontrado.")
-            await asyncio.sleep(30)
-            await msg.delete()
+            await ctx.send("Nenhum membro registrado encontrado.")
             return
 
         options = []
@@ -30,8 +28,7 @@ async def buscar_membro(ctx, bot, passaporte: int = None):
         select.callback = select_callback
         view = View()
         view.add_item(select)
-        msg = await ctx.send("Escolha um membro para buscar:", view=view)
-
+        await ctx.send("Escolha um membro para buscar:", view=view)
     else:
         await fetch_member_data(ctx, bot, passaporte)  # Passar bot aqui também
 
@@ -59,7 +56,7 @@ async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetr
             farms_summary += '\n'.join([f'--> {farm["farm_type"]} - {farm["quantity"]}' for farm in farms])
             farms_summary += '\n'
 
-        msg = await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
+        await ctx.send(f"**Membro** {member.display_name}:\n{farms_summary}")
 
         # Criar menu dropdown para verificar as imagens
         options = [SelectOption(label="Não", value="no")]
@@ -81,13 +78,13 @@ async def fetch_member_data(ctx, bot, passaporte):  # Receber bot como parâmetr
         select.callback = select_callback
         view = View()
         view.add_item(select)
-        msg = await ctx.send("Escolha um farm para ver as imagens:", view=view)
+        await ctx.send("Escolha um farm para ver as imagens:", view=view)
     else:
-        msg = await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
+        await ctx.send(f"Nenhum registro encontrado para o passaporte {passaporte}")
 
 async def fetch_farm_images(ctx, id_farm):
     farm = get_farm_by_id(id_farm)
     if farm:
-        msg = await ctx.send(f"Imagens para o farm ID: {id_farm}\nAntes:\n{farm['img_antes']}\nDepois:\n{farm['img_depois']}")
+        await ctx.send(f"Imagens para o farm ID: {id_farm}\nAntes:\n{farm['img_antes']}\nDepois:\n{farm['img_depois']}")
     else:
-        msg = await ctx.send(f"Nenhum registro encontrado para o ID do farm {id_farm}")
+        await ctx.send(f"Nenhum registro encontrado para o ID do farm {id_farm}")
